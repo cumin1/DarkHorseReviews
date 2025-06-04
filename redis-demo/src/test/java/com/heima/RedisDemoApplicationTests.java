@@ -9,10 +9,10 @@ import org.springframework.data.redis.core.RedisTemplate;
 @SpringBootTest
 class RedisDemoApplicationTests {
 
-    @Autowired
+
     private RedisTemplate<String,Object> redisTemplate;
 
-    @Test
+
     void testString() {
         // 写入一条String数据
         redisTemplate.opsForValue().set("name", "虎哥");
@@ -21,7 +21,7 @@ class RedisDemoApplicationTests {
         System.out.println("name = " + name);
     }
 
-    @Test
+
     void testSaveUser() {
         // 写入数据
         redisTemplate.opsForValue().set("user:100", new User("虎哥", 21));

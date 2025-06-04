@@ -1,0 +1,3 @@
+com\heima\RedisDemoApplication.class
+com\heima\redis\pojo\User.class
+com\heima\redis\config\RedisConfig.class
