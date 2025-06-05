@@ -13,10 +13,10 @@ import java.util.Map;
 @SpringBootTest
 class RedisStringTests {
 
-
+    @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-
+    @Test
     void testString() {
         // 写入一条String数据
         stringRedisTemplate.opsForValue().set("verify:phone:13600527634", "124143");
@@ -27,7 +27,7 @@ class RedisStringTests {
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
-
+    @Test
     void testSaveUser() throws JsonProcessingException {
         // 创建对象
         User user = new User("虎哥", 21);
@@ -43,7 +43,7 @@ class RedisStringTests {
         System.out.println("user1 = " + user1);
     }
 
-
+    @Test
     void testHash() {
         stringRedisTemplate.opsForHash().put("user:400", "name", "虎哥");
         stringRedisTemplate.opsForHash().put("user:400", "age", "21");
