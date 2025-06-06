@@ -1,31 +1,50 @@
 package com.hmdp.utils;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.User;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static com.hmdp.utils.RedisConstants.LOGIN_USER_KEY;
+import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
 
 public class LoginInterceptor implements HandlerInterceptor {
+
+    private StringRedisTemplate stringRedisTemplate;
+
+    public LoginInterceptor(StringRedisTemplate redisTemplate) {
+        this.stringRedisTemplate = redisTemplate;
+    }
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 从用户请求携带的cookies中得到session
-        HttpSession session = request.getSession();
-        User user = (User)session.getAttribute("user");
-        // 判断用户是否存在
-        if (user == null) {
+        // 使用token获取用户信息(没有用户则拦截请求)
+        String token = request.getHeader("authorization");
+        if (StrUtil.isBlank(token)) {
             response.setStatus(401);
             return false;
         }
-
+        Map<Object, Object> userMap = stringRedisTemplate.opsForHash().entries(LOGIN_USER_KEY+token);
+        // 判断用户是否存在
+        if (userMap.isEmpty()) {
+            response.setStatus(401);
+            return false;
+        }
+        // 将查询到的Hash转为UserDto
+        UserDTO userDTO = BeanUtil.fillBeanWithMap(userMap, new UserDTO(), false);
         // 如果存在 将用户信息保存到ThreadLocal
-        UserDTO userDTO = new UserDTO();
-        BeanUtils.copyProperties(user, userDTO);
         UserHolder.saveUser(userDTO);
+        // 更新用户token的有效期
+        stringRedisTemplate.expire(LOGIN_USER_KEY+token,LOGIN_USER_TTL, TimeUnit.SECONDS);
         return true;
     }
 
