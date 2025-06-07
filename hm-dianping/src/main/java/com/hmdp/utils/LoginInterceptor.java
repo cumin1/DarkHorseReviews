@@ -19,38 +19,14 @@ import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
 
 public class LoginInterceptor implements HandlerInterceptor {
 
-    private StringRedisTemplate stringRedisTemplate;
-
-    public LoginInterceptor(StringRedisTemplate redisTemplate) {
-        this.stringRedisTemplate = redisTemplate;
-    }
-
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        // 使用token获取用户信息(没有用户则拦截请求)
-        String token = request.getHeader("authorization");
-        if (StrUtil.isBlank(token)) {
+        // 从threadLocal获取用户信息
+        UserDTO userDTO = UserHolder.getUser();
+        if (userDTO == null) {
             response.setStatus(401);
             return false;
         }
-        Map<Object, Object> userMap = stringRedisTemplate.opsForHash().entries(LOGIN_USER_KEY+token);
-        // 判断用户是否存在
-        if (userMap.isEmpty()) {
-            response.setStatus(401);
-            return false;
-        }
-        // 将查询到的Hash转为UserDto
-        UserDTO userDTO = BeanUtil.fillBeanWithMap(userMap, new UserDTO(), false);
-        // 如果存在 将用户信息保存到ThreadLocal
-        UserHolder.saveUser(userDTO);
-        // 更新用户token的有效期
-        stringRedisTemplate.expire(LOGIN_USER_KEY+token,LOGIN_USER_TTL, TimeUnit.SECONDS);
         return true;
-    }
-
-    @Override
-    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
-        // 移除用户 避免内存泄露
-        UserHolder.removeUser();
     }
 }
