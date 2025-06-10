@@ -40,7 +40,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             return Result.ok(shop);
         }
         // 判断命中的是否是空值 如果是空值 返回错误信息
-        if (shopJson == "") {
+        if (shopJson != null) {
             return Result.fail("店铺不存在");
         }
         // 2.如果没命中则去数据库进行查询
