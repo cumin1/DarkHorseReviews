@@ -22,7 +22,7 @@ public class RedisIdWorker {
     public long nextId(String keyPrefix){
         // 生成时间戳
         long nowSecond = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
-        long timestamp = nowSecond-=BEGIN_TIMESTAMP;
+        long timestamp = nowSecond-BEGIN_TIMESTAMP;
         // 生成序列号
         String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy:MM:dd"));
         long count = stringRedisTemplate.opsForValue().increment("icr:" + keyPrefix + ":" + today);
