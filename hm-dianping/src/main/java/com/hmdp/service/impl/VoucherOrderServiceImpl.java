@@ -55,14 +55,17 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
         // 扣减库存
         boolean success = seckillVoucherService.update()
-                .setSql("stock = stock - 1").eq("voucher_id", voucherId)
+                .setSql("stock = stock - 1")
+                .eq("voucher_id", voucherId)
+                .gt("stock",0)
                 .update();
         if(!success){ return  Result.fail("库存不足!"); }
         // 创建订单
         VoucherOrder voucherOrder = new VoucherOrder();
         long voucherOrderID = redisIdWorker.nextId("order");
         voucherOrder.setId(voucherOrderID);
-        voucherOrder.setUserId(UserHolder.getUser().getId());
+//        voucherOrder.setUserId(UserHolder.getUser().getId());
+        voucherOrder.setUserId(1010L);
         voucherOrder.setVoucherId(voucherId);
         save(voucherOrder);
         // 返回订单id
