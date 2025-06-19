@@ -3,6 +3,7 @@ package com.hmdp;
 import com.hmdp.service.impl.ShopServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import org.junit.jupiter.api.Test;
+import org.redisson.Redisson;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -45,5 +46,10 @@ class HmDianPingApplicationTests {
     @Test
     void testSaveShop2Redis() throws InterruptedException {
         shopService.saveShop2Redis(1L,10L);
+    }
+
+    @Test
+    void testRedisson(){
+
     }
 }

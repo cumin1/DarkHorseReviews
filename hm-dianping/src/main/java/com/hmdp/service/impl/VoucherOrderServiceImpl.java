@@ -14,6 +14,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.SimpleRedisLock;
 import com.hmdp.utils.UserHolder;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +41,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     @Autowired
     private RedisIdWorker redisIdWorker;
+
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private RedissonClient redissonClient;
 
     @Override
     public Result seckillVoucher(Long voucherId) {
@@ -57,11 +63,13 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         if(stock < 1){
             return  Result.fail("库存不足!");
         }
-        Long userId = UserHolder.getUser().getId();
+        // Long userId = UserHolder.getUser().getId();
+        Long userId = 1010L;
         // 尝试创建锁对象
-        SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order:" + userId);
+        // SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order:" + userId);
+        RLock lock = redissonClient.getLock("lock:order:" + userId);
         // 获取锁
-        boolean isLock = simpleRedisLock.tryLock(5L);
+        boolean isLock = lock.tryLock();
         if (!isLock) {
             // 获取锁失败
             return Result.fail("不允许重复下单!");
@@ -72,13 +80,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return proxy.createVoucherOrder(voucherId);
         } finally {
             // 释放锁
-            simpleRedisLock.unlock();
+            lock.unlock();
         }
     }
 
     @Transactional
     public Result createVoucherOrder(Long voucherId) {
-        Long userId = UserHolder.getUser().getId();
+        // Long userId = UserHolder.getUser().getId();
+        Long userId = 1010L;
         // 一人一单判断
         int count = query().eq("user_id", userId).eq("voucher_id", voucherId).count();
         if (count > 0) {
