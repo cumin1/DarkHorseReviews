@@ -29,12 +29,15 @@ public class BlogController {
 
     @Resource
     private IBlogService blogService;
-    @Resource
-    private IUserService userService;
 
     @GetMapping("/{id}")
     public Result getBlog(@PathVariable Long id) {
         return blogService.queryByBlogId(id);
+    }
+
+    @GetMapping("/likes/{id}")
+    public Result getBlogLikes(@PathVariable Long id) {
+        return blogService.getBlogLikes(id);
     }
 
     @PostMapping
