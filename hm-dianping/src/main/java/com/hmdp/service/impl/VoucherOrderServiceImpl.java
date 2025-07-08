@@ -20,6 +20,7 @@ import org.redisson.api.RedissonClient;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -88,6 +89,30 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
     }
 
+
+
+    @Transactional
+    public void createVoucherOrder(VoucherOrder voucherOrder) {
+        Long userId = voucherOrder.getUserId();
+        // 一人一单判断
+        int count = query().eq("user_id", userId).eq("voucher_id", voucherOrder.getVoucherId()).count();
+        if (count > 0) {
+            log.error("用户已经购买过一次!");
+            return;
+        }
+        // 扣减库存
+        boolean success = seckillVoucherService.update()
+                .setSql("stock = stock - 1")
+                .eq("voucher_id", voucherOrder.getVoucherId())
+                .gt("stock", 0)
+                .update();
+        if (!success) {
+            log.info("库存不足!");
+            return;
+        }
+        save(voucherOrder);
+    }
+
     private void handerVoucherOrder(VoucherOrder voucherOrder) {
         Long userId = voucherOrder.getUserId();
         // 尝试创建锁对象
@@ -101,7 +126,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         }
         // 获取跟事务有关的代理对象
         try {
-            return proxy.createVoucherOrder(voucherOrder);
+            proxy.createVoucherOrder(voucherOrder);
         } finally {
             // 释放锁
             lock.unlock();
@@ -139,61 +164,43 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         return Result.ok(orderId);
     }
 
-//    @Override
-//    public Result seckillVoucher(Long voucherId) {
-//        // 前端提交优惠券id 先查询优惠券信息
-//        SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
-//        // 判断是否时间符合（不符合返回异常）
-//        LocalDateTime now = LocalDateTime.now();
-//        // 判断在不在这个范围内
-//        if (voucher.getBeginTime().isAfter(now) && voucher.getEndTime().isBefore(now)) {
-//            return Result.fail("秒杀不在指定时间内!");
-//        }
-//        // 判断库存是否充足（不充足返回异常）
-//        Integer stock = voucher.getStock();
-//        if(stock < 1){
-//            return  Result.fail("库存不足!");
-//        }
-//        // Long userId = UserHolder.getUser().getId();
-//        Long userId = 1010L;
-//        // 尝试创建锁对象
-//        // SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order:" + userId);
-//        RLock lock = redissonClient.getLock("lock:order:" + userId);
-//        // 获取锁
-//        boolean isLock = lock.tryLock();
-//        if (!isLock) {
-//            // 获取锁失败
-//            return Result.fail("不允许重复下单!");
-//        }
-//        // 获取跟事务有关的代理对象
-//        try {
-//            IVoucherOrderService proxy = (IVoucherOrderService)AopContext.currentProxy();
-//            return proxy.createVoucherOrder(voucherId);
-//        } finally {
-//            // 释放锁
-//            lock.unlock();
-//        }
-//    }
-
-    @Transactional
-    public void createVoucherOrder(VoucherOrder voucherOrder) {
-         Long userId = voucherOrder.getUserId();
-        // 一人一单判断
-        int count = query().eq("user_id", userId).eq("voucher_id", voucherOrder.getVoucherId()).count();
-        if (count > 0) {
-            log.error("用户已经购买过一次!");
-            return;
+/*    @Override
+    public Result seckillVoucher(Long voucherId) {
+        // 前端提交优惠券id 先查询优惠券信息
+        SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
+        // 判断是否时间符合（不符合返回异常）
+        LocalDateTime now = LocalDateTime.now();
+        // 判断在不在这个范围内
+        if (voucher.getBeginTime().isAfter(now) && voucher.getEndTime().isBefore(now)) {
+            return Result.fail("秒杀不在指定时间内!");
         }
-        // 扣减库存
-        boolean success = seckillVoucherService.update()
-                .setSql("stock = stock - 1")
-                .eq("voucher_id", voucherOrder.getVoucherId())
-                .gt("stock", 0)
-                .update();
-        if (!success) {
-            log.info("库存不足!");
-            return;
+        // 判断库存是否充足（不充足返回异常）
+        Integer stock = voucher.getStock();
+        if(stock < 1){
+            return  Result.fail("库存不足!");
         }
-        save(voucherOrder);
+        // Long userId = UserHolder.getUser().getId();
+        Long userId = 1010L;
+        // 尝试创建锁对象
+        // SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order:" + userId);
+        RLock lock = redissonClient.getLock("lock:order:" + userId);
+        // 获取锁
+        boolean isLock = lock.tryLock();
+        if (!isLock) {
+            // 获取锁失败
+            return Result.fail("不允许重复下单!");
+        }
+        // 获取跟事务有关的代理对象
+        try {
+            IVoucherOrderService proxy = (IVoucherOrderService)AopContext.currentProxy();
+            return proxy.createVoucherOrder(voucherId);
+        } finally {
+            // 释放锁
+            lock.unlock();
+        }
     }
+*/
+
+
+
 }
